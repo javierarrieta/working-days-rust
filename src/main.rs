@@ -7,20 +7,32 @@ use std::fmt::{Display, Result, Formatter};
 use std::collections::HashSet;
 
 fn main() {
-    let year = 2018;
-    let time_off_days = 27;
+    let years: Vec<i32> = vec![2017, 2018, 2019, 2020, 2021];
+    let time_off_days: u32 = 27;
     let mut extra_leave = HashSet::new();
     extra_leave.insert(Weekday::Fri);
 
+    let counts_with_time_off: Vec<TreeMap<DayType, u32>> = years.iter().map(|year|
+        number_days_year(*year as i32, time_off_days, &PublicHolidays::irish_holidays, &extra_leave)
+    ).collect();
+
+    let counts = counts_with_time_off.iter().fold(TreeMap::new(), fold_map_add);
+    for (k, v) in counts.iter() {
+        println!("{} -> {}", k, v);
+    }
+}
+
+fn number_days_year(year: i32, time_off_days: u32, pub_holidays: &Fn(i32) -> PublicHolidays, extra_leave: &HashSet<Weekday>) -> TreeMap<DayType, u32> {
     let iter = YearIter::new(year);
-    let hols = PublicHolidays::irish_holidays(year);
+    let hols = pub_holidays(year);
     let days = iter.map(|d| DayType::from_day(d, &hols, &extra_leave));
     let counts: TreeMap<DayType, u32> = days.fold(TreeMap::new(), DayType::in_fold);
     let workdays = counts.get(&DayType::Workday).unwrap() - time_off_days;
-    let counts_with_time_off = counts.insert(DayType::Workday, workdays).insert(DayType::TimeOff, time_off_days);
-    for (k, v) in counts_with_time_off.iter() {
-        println!("{} -> {}", k, v);
-    }
+    counts.insert(DayType::Workday, workdays).insert(DayType::TimeOff, time_off_days)
+}
+
+fn fold_map_add(acc: TreeMap<DayType, u32>, m: &TreeMap<DayType, u32>) -> TreeMap<DayType, u32> {
+    m.iter().fold(acc, |acc, (k, v)| acc.insert(*k, acc.get(k).unwrap_or(&0) + v))
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash, PartialOrd, Ord)]
