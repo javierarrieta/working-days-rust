@@ -2,9 +2,12 @@ extern crate chrono;
 extern crate immutable_map;
 
 use chrono::prelude::*;
+use Weekday::*;
 use immutable_map::{TreeMap, TreeSet};
 use std::fmt::{Display, Result, Formatter};
 use std::collections::HashSet;
+use std::string::String;
+use std::borrow::Borrow;
 
 fn main() {
     let years: Vec<i32> = vec![2017, 2018, 2019, 2020, 2021];
@@ -17,8 +20,12 @@ fn main() {
     ).collect();
 
     let counts = counts_with_time_off.iter().fold(TreeMap::new(), fold_map_add);
+    let num = years.len() as u32;
+    println!("Years: {}", num);
+    println!("Extra leave days: {:?}", extra_leave);
+    println!("------------------------------");
     for (k, v) in counts.iter() {
-        println!("{} -> {}", k, v);
+        println!("{} -> {} ({} avg)", k, v, v / num);
     }
 }
 
@@ -33,6 +40,19 @@ fn number_days_year(year: i32, time_off_days: u32, pub_holidays: &Fn(i32) -> Pub
 
 fn fold_map_add(acc: TreeMap<DayType, u32>, m: &TreeMap<DayType, u32>) -> TreeMap<DayType, u32> {
     m.iter().fold(acc, |acc, (k, v)| acc.insert(*k, acc.get(k).unwrap_or(&0) + v))
+}
+
+fn str_to_weekday(s: &str) -> std::result::Result<Weekday, String> {
+    match s.to_lowercase().borrow() {
+        "mon" | "monday" => Ok(Mon),
+        "tue" | "tuesday" => Ok(Tue),
+        "wed" | "wednesday" => Ok(Wed),
+        "thu" | "thursday" => Ok(Thu),
+        "fri" | "friday" => Ok(Fri),
+        "sat" | "saturday" => Ok(Sat),
+        "sun" | "sunday" => Ok(Sun),
+        _ => Err(String::from(s) + "is not a valid weekday")
+    }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash, PartialOrd, Ord)]
